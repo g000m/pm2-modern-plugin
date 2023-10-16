@@ -27,18 +27,18 @@ function changeNameInMdFiles({pluginName,slug,githubUserName}){
 }
 
 
-readline.question(`What is your plugin's slug? Used for translation domain, main file name, etc.`, slug => {
+readline.question(`What is your plugin's slug? Used for translation domain, main file name, etc. `, slug => {
     slug = slug.replace(/\W/g, '').toLowerCase();
-    readline.question(`Root Namespace`, rootNamespace => {
-        readline.question(`Plugin name?`, pluginName => {
-            readline.question(`Github username?`, githubUserName => {
+    readline.question(`Root Namespace `, rootNamespace => {
+        readline.question(`Plugin name? `, pluginName => {
+            readline.question(`Github username? `, githubUserName => {
                 let originalNamespace = 'VendorNamespace'; // HERE
                 changeNameInPhpFiles({slug,rootNamespace,pluginName,originalNamespace});
                 // changeNameInMdFiles({pluginName,slug,githubUserName});
                 //Replace slug in pages/admin entry point
                 shell.sed('-i', "wordpress-plugin", slug,  `pages/admin/index.js`); // HERE
                 //Replace name in package.json
-                shell.sed('-i', "pm2-modern-plugin", `@${githubUserName}/${slug}`,  'package.json'); // HERE
+                shell.sed('-i', "pm2-modern-plugin", `${slug}`,  'package.json'); // HERE
                 //replace namespace in composer.json
                 shell.sed('-i', originalNamespace, rootNamespace, 'composer.json');
                 readline.close()
