@@ -13,7 +13,7 @@ function changeNameInPhpFiles({slug,rootNamespace,pluginName,}){
     let sed = phpSedFactory({slug,rootNamespace})
     shell.mv( 'wordpress-plugin.php', `${slug}.php` );
     sed(`${slug}.php`);
-    shell.sed('-i', 'PLUGIN_NAME', pluginName, `${slug}.php`);
+    shell.sed('-i', 'PluginNamespace', pluginName, `${slug}.php`); // HERE
     shell.ls('**/*.php').forEach(sed);
 }
 
@@ -32,13 +32,13 @@ readline.question(`What is your plugin's slug? Used for translation domain, main
     readline.question(`Root Namespace`, rootNamespace => {
         readline.question(`Plugin name?`, pluginName => {
             readline.question(`Github username?`, githubUserName => {
-                let originalNamespace = 'WordPressPlugin';
+                let originalNamespace = 'VendorNamespace'; // HERE
                 changeNameInPhpFiles({slug,rootNamespace,pluginName,originalNamespace});
-                changeNameInMdFiles({pluginName,slug,githubUserName});
+                // changeNameInMdFiles({pluginName,slug,githubUserName});
                 //Replace slug in pages/admin entry point
-                shell.sed('-i', "wordpress-plugin", slug,  `pages/admin/index.js`);
+                shell.sed('-i', "wordpress-plugin", slug,  `pages/admin/index.js`); // HERE
                 //Replace name in package.json
-                shell.sed('-i', "@shelob9/wordpress-plugin", `@${githubUserName}/${slug}`,  'package.json');
+                shell.sed('-i', "pm2-modern-plugin", `@${githubUserName}/${slug}`,  'package.json'); // HERE
                 //replace namespace in composer.json
                 shell.sed('-i', originalNamespace, rootNamespace, 'composer.json');
                 readline.close()
