@@ -26,6 +26,7 @@
 		"prezip:php": "composer install --no-dev -o",
 		"prezip": "npm-run-all prezip:*",
 		"prezip:js": "npm run build",
+		"rename": "node ./cli/rename.js",
 		"zip": "npm run prezip && node makeZip.js"
 	},
 	"devDependencies": {
