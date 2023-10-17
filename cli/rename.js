@@ -17,29 +17,32 @@ function parseArgs(argList) {
 
 const cmdArgs = parseArgs(process.argv);
 
+const fs = require('fs');
 const path = require('path');
 
-function changeNameInFiles({fileType, replacements, targetDirs}) {
-    targetDirs.forEach(dir => {
-        if (!shell.test('-d', dir)) {
-            // Skip if directory does not exist
-            return;
-        }
+const getFiles = (dir, ext) =>
+  fs.readdirSync(dir).flatMap(item => {
+      const itemPath = path.join(dir, item);
+      const stat = fs.statSync(itemPath);
+      return stat.isDirectory()
+        ? getFiles(itemPath, ext)
+        : path.extname(item) === `.${ext}`
+          ? [ itemPath ]
+          : [];
+  });
 
-        const pattern = path.join(dir, `**/*.${fileType}`);
-        const fileList = shell.ls(pattern);
-        if (fileList.length === 0) {
-            // Skip if no such files exist
-            return;
-        }
-
-        fileList.forEach(filename => {
-            Object.entries(replacements).forEach(([placeholder, replacement]) => {
-                shell.sed('-i', placeholder, replacement, filename);
-            });
-        });
-    });
+function changeNameInFiles({ fileType, replacements, targetDirs }) {
+    targetDirs
+      .filter(fs.existsSync)
+      .flatMap(dir => getFiles(dir, fileType))
+      .forEach(file => {
+          Object.entries(replacements).forEach(([ search, replace ]) => {
+              shell.sed('-i', search, replace, file);
+          });
+      });
 }
+
+
 
 function main({slug, rootNamespace, pluginName, githubUserName}) {
     const originalNamespace = 'VendorNamespace';
