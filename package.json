@@ -31,7 +31,8 @@
 	},
 	"devDependencies": {
 		"@wordpress/env": "^5.8.0",
-		"@wordpress/scripts": "^25.0.0"
+		"@wordpress/scripts": "^25.0.0",
+		"shelljs": "^0.8.5"
 	},
 	"dependencies": {
 		"@imaginary-machines/wp-admin-components": "^0.4.1",
