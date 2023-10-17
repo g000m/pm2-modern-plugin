@@ -17,13 +17,22 @@ function parseArgs(argList) {
 
 const cmdArgs = parseArgs(process.argv);
 
+const path = require('path');
+
 function changeNameInFiles({fileType, replacements, targetDirs}) {
     targetDirs.forEach(dir => {
-        const fileList = shell.ls(`${dir}/**/*.${fileType}`);
-        if (fileList.code !== 0) {
+        if (!shell.test('-d', dir)) {
+            // Skip if directory does not exist
+            return;
+        }
+
+        const pattern = path.join(dir, `**/*.${fileType}`);
+        const fileList = shell.ls(pattern);
+        if (fileList.length === 0) {
             // Skip if no such files exist
             return;
         }
+
         fileList.forEach(filename => {
             Object.entries(replacements).forEach(([placeholder, replacement]) => {
                 shell.sed('-i', placeholder, replacement, filename);
@@ -62,7 +71,13 @@ function main({slug, rootNamespace, pluginName, githubUserName}) {
     });
 
     // Change filename for ${SlugPlaceholder}.php to ${slug}.php
-    shell.mv(`${slugPlaceholder}.php`, `${slug}.php`);
+    const slugFilename = `${slugPlaceholder}.php`;
+    if (shell.test('-f', slugFilename)) {
+        shell.mv(slugFilename, `${slug}.php`);
+    } else {
+        console.log(`Could not find ${slugFilename} to rename`);
+    }
+
 }
 
 if (cmdArgs.slug && cmdArgs['root-namespace'] && cmdArgs['plugin-name'] && cmdArgs['github-username']) {
