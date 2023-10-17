@@ -4,50 +4,77 @@ const readline = require('readline').createInterface({
     output: process.stdout
 });
 const shell = require('shelljs');
-const mdSedFactory = require( './lib/mdSedFactory');
-const phpSedFactory = require( './lib/phpSedFactory');
-/**
- * Rewrite plugin name, slug, function prefix and namespace in php files
- */
-function changeNameInPhpFiles({slug,rootNamespace,pluginName,originalNamespace, originalPluginName}){
-    let sed = phpSedFactory({slug,rootNamespace})
-    shell.mv( 'pm2-modern-plugin.php', `${slug}.php` ); // HERE
-    sed(`${slug}.php`);
-    shell.sed('-i', 'PluginNamespace', pluginName, `${slug}.php`); // HERE
-    shell.sed('-i', 'PLUGIN_NAME', pluginName, `${slug}.php`); // HERE
-    shell.sed('-i', 'VendorNamespace', originalNamespace, `${slug}.php`); // HERE
-    shell.ls('**/*.php').forEach(sed);
+
+function parseArgs(argList) {
+    const args = {};
+    for (let i = 0; i < argList.length; i++) {
+        if (argList[i].startsWith('--')) {
+            args[argList[i].substring(2)] = argList[i + 1];
+        }
+    }
+    return args;
 }
 
-function changeNameInMdFiles({pluginName,slug,githubUserName}){
-    const mdSed = mdSedFactory({pluginName,slug,githubUserName})
-    shell.mv( 'cli/templates/_README.md', 'README.md' );
-    mdSed('README.md');
-    shell.rm( 'docs/index.md');
-    shell.ls('docs/*.md').forEach(mdSed);
-    shell.cp( 'README.md', 'docs/index.md');
-}
+const cmdArgs = parseArgs(process.argv);
 
-
-readline.question(`What is your plugin's slug? Used for translation domain, main file name, etc. `, slug => {
-    slug = slug.replace(/\W/g, '').toLowerCase();
-    readline.question(`Root Namespace `, rootNamespace => {
-        readline.question(`Plugin name? `, pluginName => {
-            readline.question(`Github username? `, githubUserName => {
-                let originalNamespace = 'VendorNamespace'; // HERE
-                const originalPluginName = 'PLUGIN_NAME'; // HERE
-                changeNameInPhpFiles({slug,rootNamespace,pluginName,originalNamespace, originalPluginName});
-                // changeNameInMdFiles({pluginName,slug,githubUserName});
-                //Replace slug in pages/admin entry point
-                shell.sed('-i', "wordpress-plugin", slug,  `pages/admin/index.js`); // HERE
-                //Replace name in package.json
-                shell.sed('-i', "pm2-modern-plugin", `${slug}`,  'package.json'); // HERE
-
-                //replace namespace in composer.json
-                shell.sed('-i', originalNamespace, rootNamespace, 'composer.json');
-                shell.sed('-i', originalPluginName, pluginName, 'composer.json');
-                readline.close()
+function changeNameInFiles({fileType, replacements, targetDirs}) {
+    targetDirs.forEach(dir => {
+        shell.ls(`${dir}/**/*.${fileType}`).forEach(filename => {
+            Object.entries(replacements).forEach(([placeholder, replacement]) => {
+                shell.sed('-i', placeholder, replacement, filename);
             });
         });
     });
-});
+}
+
+function main({slug, rootNamespace, pluginName, githubUserName}) {
+    const originalNamespace = 'VendorNamespace';
+    const originalPluginNamespace = 'PluginNamespace';
+    const originalPluginName = 'PLUGIN_NAME';
+
+    const replacements = {
+        [originalNamespace]: rootNamespace,
+        [originalPluginName]: pluginName,
+        [originalPluginNamespace]: pluginName,
+        'GithubUserNamePlaceholder': githubUserName,
+        'pm2-modern-plugin': slug
+    };
+
+    const targetDirs = ['classes', 'src', 'tests'];
+    const targetFilenames = ['composer.json', 'package.json', 'README.md', ];
+
+    ['php', 'js', 'json', 'md', 'txt', 'css'].forEach(fileType => {
+        changeNameInFiles({fileType, replacements, targetDirs});
+    });
+
+    // Handle replacements in specific filenames
+    targetFilenames.forEach(filename => {
+        Object.entries(replacements).forEach(([placeholder, replacement]) => {
+            shell.sed('-i', placeholder, replacement, filename);
+        });
+    });
+
+    // Change filename for ${SlugPlaceholder}.php to ${slug}.php
+    shell.mv(`${replacements['SlugPlaceholder']}.php`, `${slug}.php`);
+}
+
+if (cmdArgs.slug && cmdArgs['root-namespace'] && cmdArgs['plugin-name'] && cmdArgs['github-username']) {
+    main({
+        slug: cmdArgs.slug,
+        rootNamespace: cmdArgs['root-namespace'],
+        pluginName: cmdArgs['plugin-name'],
+        githubUserName: cmdArgs['github-username']
+    });
+} else {
+    readline.question(`What is your plugin's slug? `, slug => {
+        slug = slug.replace(/\W/g, '').toLowerCase();
+        readline.question(`Root Namespace `, rootNamespace => {
+            readline.question(`Plugin name? `, pluginName => {
+                readline.question(`Github username? `, githubUserName => {
+                    main({slug, rootNamespace, pluginName, githubUserName});
+                    readline.close();
+                });
+            });
+        });
+    });
+}
