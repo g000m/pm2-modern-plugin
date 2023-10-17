@@ -19,7 +19,12 @@ const cmdArgs = parseArgs(process.argv);
 
 function changeNameInFiles({fileType, replacements, targetDirs}) {
     targetDirs.forEach(dir => {
-        shell.ls(`${dir}/**/*.${fileType}`).forEach(filename => {
+        const fileList = shell.ls(`${dir}/**/*.${fileType}`);
+        if (fileList.code !== 0) {
+            // Skip if no such files exist
+            return;
+        }
+        fileList.forEach(filename => {
             Object.entries(replacements).forEach(([placeholder, replacement]) => {
                 shell.sed('-i', placeholder, replacement, filename);
             });
@@ -31,13 +36,15 @@ function main({slug, rootNamespace, pluginName, githubUserName}) {
     const originalNamespace = 'VendorNamespace';
     const originalPluginNamespace = 'PluginNamespace';
     const originalPluginName = 'PLUGIN_NAME';
+    const slugPlaceholder = 'pm2-modern-plugin';
+    const GithubUserNamePlaceholder = 'github-username';
 
     const replacements = {
+        [slugPlaceholder]: slug,
         [originalNamespace]: rootNamespace,
         [originalPluginName]: pluginName,
         [originalPluginNamespace]: pluginName,
-        'GithubUserNamePlaceholder': githubUserName,
-        'pm2-modern-plugin': slug
+        [GithubUserNamePlaceholder]: githubUserName,
     };
 
     const targetDirs = ['classes', 'src', 'tests'];
@@ -55,7 +62,7 @@ function main({slug, rootNamespace, pluginName, githubUserName}) {
     });
 
     // Change filename for ${SlugPlaceholder}.php to ${slug}.php
-    shell.mv(`${replacements['SlugPlaceholder']}.php`, `${slug}.php`);
+    shell.mv(`${slugPlaceholder}.php`, `${slug}.php`);
 }
 
 if (cmdArgs.slug && cmdArgs['root-namespace'] && cmdArgs['plugin-name'] && cmdArgs['github-username']) {
@@ -65,6 +72,7 @@ if (cmdArgs.slug && cmdArgs['root-namespace'] && cmdArgs['plugin-name'] && cmdAr
         pluginName: cmdArgs['plugin-name'],
         githubUserName: cmdArgs['github-username']
     });
+    readline.close();
 } else {
     readline.question(`What is your plugin's slug? `, slug => {
         slug = slug.replace(/\W/g, '').toLowerCase();
