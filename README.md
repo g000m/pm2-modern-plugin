@@ -13,7 +13,7 @@ Put Your Description Here
 	- `npm i`
 	- Installs with npm and composer
 - Start environment
-	- `npm env start`
+	- `npm run env start`
 	- Uses [@wordpres/env](https://www.npmjs.com/package/@wordpress/env)
 	- [Requires Docker](https://www.docker.com/products/docker-desktop/)
 - Test PHP
